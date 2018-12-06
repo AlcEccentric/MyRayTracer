@@ -132,6 +132,13 @@ inline vec3 vec3::operator* (const float f) const{
 inline vec3 vec3::operator/ (const float f) const{
     return vec3(e[0]/f, e[1]/f, e[2]/f);
 }
+
+inline vec3 operator* (const float f, const vec3& v) {
+    return vec3(v.e[0]*f, v.e[1]*f, v.e[2]*f);
+}
+inline vec3 operator/ (const float f, const vec3& v) {
+    return vec3(v.e[0]/f, v.e[1]/f, v.e[2]/f);
+}
 // reload == != = between vecs
 inline bool vec3::operator== (const vec3& v) const{
     return e[0]==v.e[0] && e[1]==v.e[1] && e[2]==v.e[2]; 

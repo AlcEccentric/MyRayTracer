@@ -3,27 +3,50 @@
 #include "vec3.h"
 #include "ray.h"
 
-bool hit_sphere(const vec3& center, float radius, const ray& r){
+float hit_sphere(const vec3& center, float radius, const ray& r){
     float a = r.dir().squared_length();
     float b = dot(r.ori() - center, r.dir()) * 2;
     float c = (r.ori() - center).squared_length() - radius * radius;
-    return (b*b - 4*a*c > 0);
+    // if the sphere is behind the camera (at origin point), two roots are all negtive
+    // or the camera is in the sphere, one of two roots is negtive
+    // or no ray from camera has root
+    // in these cases, we should not see the sphere
+
+    // if the forward ray can hit the sphere, the returned value must be non-negtive
+    float delta = b*b - 4*a*c;
+    if(delta < 0){
+        // no root means cannot hit
+        return -1.0;
+    }else{
+        // have root(s) return the smaller one
+        // if smaller one is negtive, it means the camera is in the sphere or in front of the sphere
+        return (-b - sqrt(delta))/(2.0*a);
+    }
 }
 vec3 color(const ray& r){
     // generating a color according the ray
     // if the ray hits the sphere generate color in a different way
-    if(hit_sphere(vec3(0.0, 0.0, -1.0), 0.5, r))
-        return vec3(1.0, 0.0, 0.0);
+    vec3 c = vec3(0.0, 0.0, -1.0);
+    float t = hit_sphere(c, 0.5, r);
+    if( t >= 0.0){
+        // non negative means the forward ray can hit the sphere
+        // ray.ori() + t * ray.dir() = the closer one of the points on the sphere hit by the forward ray
+        vec3 normal = normalize(r.point_at_parameter(t) - c);
+        // visualize normal by convert it xyz to rgb
+        return float(0.5) * vec3(normal.x()+1, normal.y()+1, normal.z()+1);
+    }
+
     // if the ray hits places in the background we generate background color
-    float t = 0.58 * (normalize(r.dir()).y() + 1.0);
-    t = 1;
-    return vec3(0.5, 1.0, 0.7) * (1-t) + vec3(1.0, 1.0, 1.0) * t;
+    // the normalized coordinate is in [-1.0, 1.0]
+    // +1 and *0.5 make t fall in [0.0, 1.0]
+    float k = 0.5 * (normalize(r.dir()).y() + 1.0);
+    return vec3(0.5, 1.0, 0.7) * (1-k) + vec3(1.0, 1.0, 1.0) * k;
 }
 
 int main(){
     
     std::fstream File;
-    File.open("sphere.ppm",std::ios::out);
+    File.open("shadingSphere.ppm",std::ios::out);
     if(!File){
         File.close();
         std::cout<< "fail to open file\n";
