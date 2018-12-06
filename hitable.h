@@ -2,10 +2,12 @@
 #define HITABLE_H
 #include "ray.h"
 #include "vec3.h"
+class material;
 struct hit_info{
     float t; 
     vec3 p; //hit point
     vec3 n; //normal at the point
+    material* mat_ptr; // material of the hit point
 };
 class hitable{
 public:

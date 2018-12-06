@@ -4,10 +4,13 @@
 #include "hitablelist.h"
 #include "sphere.h"
 #include "camera.h"
+#include "material.h"
+#include "lambertian.h"
+#include "metal.h"
 #include "float.h"
 
-vec3 backgroundColor = vec3(0.5, 0.7, 1.0);
-vec3 randend_in_unit_sphere(hit_info &info){
+vec3 backgroundColor = vec3(78,179,211) / float(255.0);
+vec3 randend_in_unit_sphere(){
     vec3 endpoint;
     do
     {
@@ -16,16 +19,48 @@ vec3 randend_in_unit_sphere(hit_info &info){
     return endpoint;
 
 }
+vec3 reflect(const vec3& in, const vec3& n){
+    // dot(in, info.n)*info.n = the projection of in on info.n
+    // because in points in, so we need the reversed version of in's projection on info.n which points out
+    // that is why add a minus sign
+    return in - 2*dot(in, n)*n;
+}
 // the meaning of this function
 // get color of the light sent by "world" from "ray"'s direction 
-vec3 color(const ray& r, hitable * world){
+// depth count the number of reflecions have been considered
+// we dont consider too many times of reflection
+vec3 color(const ray& r, hitable * world, int depth){
     // generating a color according the ray
     // if the ray hits the sphere generate color in a different way
-    hit_info info;
-    if(world->hit(r, 0.0, MAXFLOAT, info)){
+    hit_info r_hit_info;
+    // set 0.0 to 0.001 to get rid of shadow acne
+    // this is caused by the reflected ray from very near surface which may have t = 0.000001
+    // in real world, these very near surfaces are tiny areas where two objects touch each other
+    // There should not be ray reflection in these areas.
+    // The way is to set 0.0 to 0.001 here.
+    // neglect color of reflecting rays from too near suface
+    if(world->hit(r, 0.001, MAXFLOAT, r_hit_info)){
         // vec3 randDir = info.p + info.n + randend_in_unit_sphere(info) - info.p;
-        vec3 randDir = info.n + randend_in_unit_sphere(info);
-        return float(0.5) * color(ray(info.p , randDir), world);
+        vec3 attenu;
+        ray scattered;
+        // depth count the number of reflecions have been considered
+        // consider less than 50 times of reflection
+        // if the no. of reflection is greater than 50,
+        // we treat this case as no reflection (i.e., not scattered)
+        if(r_hit_info.mat_ptr->scatter(r, r_hit_info, attenu, scattered) && depth < 50){
+            vec3 rgb = color(scattered, world, depth + 1);
+            return vec3(
+                attenu.x() * rgb.x(),
+                attenu.y() * rgb.y(),
+                attenu.z() * rgb.z()
+            );
+        }else{
+            // ray does not get scattered means no color will be reflected from the surface
+            // return black
+            return vec3(0.0, 0.0, 0.0);
+        }
+        
+        
     }else{
         // if the ray hits places in the background we generate background color
         // the normalized coordinate is in [-1.0, 1.0]
@@ -49,10 +84,12 @@ int main(){
     int nx = 400, ny = 200, ns = 200;
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
     camera cam;
-    hitable * list[2];
-    list[0] = new sphere(vec3(0,0,-1), 0.5);
-    list[1] = new sphere(vec3(0,-100.5,-1), 100);
-    hitable* world = new hitable_list(list, 2);
+    hitable * list[4];
+    list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.8, 0.3, 0.3)));
+    list[1] = new sphere(vec3(0,-100.5,-1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
+    list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2)));
+    list[3] = new sphere(vec3(-1,0,-1), 0.5, new metal(vec3(0.8, 0.8, 0.8)));
+    hitable* world = new hitable_list(list, 4);
     for(int j = ny - 1; j >= 0; j--)
     {
         for(int i = 0; i < nx; i++)
@@ -66,7 +103,7 @@ int main(){
                 float tx = float(i + drand48())/float(nx);
                 float ty = float(j + drand48())/float(ny);
                 ray r = cam.get_ray(tx, ty);
-                c += color(r, world);
+                c += color(r, world, 0);
             }
             c /= ns;
             // why need gamma correction:
