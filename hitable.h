@@ -1,0 +1,16 @@
+#ifndef HITABLE_H
+#define HITABLE_H
+#include "ray.h"
+#include "vec3.h"
+struct hit_info{
+    float t; 
+    vec3 p; //hit point
+    vec3 n; //normal at the point
+};
+class hitable{
+public:
+    // pure virtual function
+    // can only be inherited, not allowed to be instantiated
+    virtual bool hit(const ray& r, float t_min, float t_max, hit_info& h_info) const = 0;
+};
+#endif

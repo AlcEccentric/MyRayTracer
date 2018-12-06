@@ -6,6 +6,7 @@ public:
     float e[3];
     vec3() {};
     vec3(float e0, float e1, float e2){ e[0] = e0; e[1] = e1; e[2] = e2;}
+    vec3(const vec3& v){ e[0] = v.e[0]; e[1] = v.e[1]; e[2] = v.e[2];}
     inline float x() {return e[0];}
     inline float y() {return e[1];}
     inline float z() {return e[2];}
