@@ -3,6 +3,7 @@
 #include "ray.h"
 #include "hitablelist.h"
 #include "sphere.h"
+#include "camera.h"
 #include "float.h"
 
 vec3 color(const ray& r, hitable * world){
@@ -31,12 +32,9 @@ int main(){
     } 
 
     
-    int nx = 200, ny = 100;
+    int nx = 200, ny = 100, ns = 200;
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
-    vec3 origin(0.0, 0.0, 0.0);
-    vec3 leftLowerCorner(-2.0, -1.0, -1.0);
-    vec3 horizontalRange(4.0, 0.0, 0.0);
-    vec3 verticalRange(0.0, 2.0, 0.0);
+    camera cam;
     hitable * list[2];
     list[0] = new sphere(vec3(0,0,-1), 0.5);
     list[1] = new sphere(vec3(0,-100.5,-1), 100);
@@ -45,10 +43,17 @@ int main(){
     {
         for(int i = 0; i < nx; i++)
         {
-            float tx = float(i)/float(nx);
-            float ty = float(j)/float(ny);
-            ray r(origin, leftLowerCorner + horizontalRange * tx + verticalRange * ty);
-            vec3 c = color(r, world);
+            // for each hit rigeon, emit 200 random thiner rays
+            // get color of each ray
+            // average the rgbs of all 200 ray to get antialiasing color of the origin hit point
+            vec3 c = vec3(0.0, 0.0, 0.0);
+            for(int s = 0; s < ns; s++){
+                float tx = float(i + drand48())/float(nx);
+                float ty = float(j + drand48())/float(ny);
+                ray r = cam.get_ray(tx, ty);
+                c += color(r, world);
+            }
+            c /= ns;
             int ir = int(255.99 * c.r());
             int ig = int(255.99 * c.g());
             int ib = int(255.99 * c.b());
