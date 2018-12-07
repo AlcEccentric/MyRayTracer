@@ -27,7 +27,12 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) const
         // if closer point is in the range, count this closer point as hit point
         if(small_root > t_min && small_root < t_max){
             h_info.p = r.point_at_parameter(small_root);
-            h_info.n = normalize(h_info.p - center);
+            // NOTICE 
+            // we dont use normalize() here, because we will take advanage of the sign of radius
+            // when radius is negative
+            // the normal will points to the center
+            // this kind of normal will be useful when rendering a bubble.
+            h_info.n = (h_info.p - center) / radius;
             h_info.t = small_root;
             h_info.mat_ptr = mat_ptr;
             return true;
@@ -36,7 +41,7 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) const
         float large_root = (-b - sqrt(delta))/(2.0*a);
         if(large_root > t_min && large_root < t_max){
             h_info.p = r.point_at_parameter(large_root);
-            h_info.n = normalize(h_info.p - center);
+            h_info.n = (h_info.p - center) / radius;
             h_info.t = large_root;
             h_info.mat_ptr = mat_ptr;
             return true;

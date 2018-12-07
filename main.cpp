@@ -98,12 +98,13 @@ int main(){
     int nx = 400, ny = 200, ns = 200;
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
     camera cam;
-    hitable * list[4];
+    hitable * list[5];
     list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.1, 0.2, 0.5)));
     list[1] = new sphere(vec3(0,-100.5,-1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
     list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.2));
     list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielect(1.7));
-    hitable* world = new hitable_list(list, 4);
+    list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielect(1.7));
+    hitable* world = new hitable_list(list, 5);
     for(int j = ny - 1; j >= 0; j--)
     {
         for(int i = 0; i < nx; i++)
