@@ -4,8 +4,7 @@
 #include "material.h"
 #include <stdlib.h>
 
-vec3 reflect(const vec3& in, const vec3& n);
-bool refract(const vec3& in, const vec3& n, float ni_over_nt, vec3& refracted);
+
 
 // a approximate function to cumpute the 反射比(the intensity of reflection ray/ the intensity of the original ray) compared with Fresnel equation
 // please refer to this page to see Fresnel equation

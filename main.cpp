@@ -11,34 +11,7 @@
 #include "float.h"
 
 vec3 backgroundColor = vec3(78,179,211) / float(255.0);
-vec3 randend_in_unit_sphere(){
-    vec3 endpoint;
-    do
-    {
-        endpoint = vec3(drand48(), drand48(), drand48()) * float(2.0) - vec3(1.0, 1.0, 1.0);
-    } while (endpoint.squared_length() >= 1.0);
-    return endpoint;
 
-}
-bool refract(const vec3& in, const vec3& n, float ni_over_nt, vec3& refracted){
-    vec3 u_in = normalize(in);
-    float cosi = -dot(u_in, n);
-    float sint2 =  (ni_over_nt * ni_over_nt) * (1 - cosi*cosi);
-    if(sint2 >= 1){
-        return false;
-    }else{
-        refracted = -n * sqrt(1 - sint2) + (cosi * n + u_in) * ni_over_nt;
-        return true;
-    }
-}
-vec3 reflect(const vec3& in, const vec3& n){
-    // n can points inside or outside, there is no influence. 
-    // Because in and its projection on n always points to the same orientation no matter what orientation n is.
-    // dot(in, info.n)*info.n = the projection of in on info.n
-    // because in and its projection on n points to the same orientation, we need reverse the projection
-    // that is why add a minus sign
-    return in - 2*dot(in, n)*n;
-}
 // the meaning of this function
 // get color of the light sent by "world" from "ray"'s direction 
 // depth count the number of reflecions have been considered
@@ -85,6 +58,43 @@ vec3 color(const ray& r, hitable * world, int depth){
 
 }
 
+hitable *random_scene() {
+    int n = 500;
+    hitable **list = new hitable*[n+1];
+    list[0] =  new sphere(vec3(0,-1000,0), 1000, new lambertian(vec3(0.5, 0.8, 0.5)));
+    int i = 1;
+    for (int a = -11; a < 11; a++) {
+        for (int b = -11; b < 11; b++) {
+            float choose_mat = drand48();
+            vec3 center(a+0.9*drand48(),0.2,b+0.9*drand48()); 
+            if ((center-vec3(3,0.2,0)).length() > 0.9) { 
+                if (choose_mat < 0.45) {  // diffuse
+                    list[i++] = new sphere(center, 0.2, new lambertian(vec3(drand48()*drand48(), drand48()*drand48(), drand48()*drand48())));
+                }
+                else if (choose_mat < 0.75) { // metal
+                    list[i++] = new sphere(center, 0.2,
+                            new metal(vec3(0.5*(1 + drand48()), 0.5*(1 + drand48()), 0.5*(1 + drand48())),  0.4*drand48()));
+                }
+                else if(choose_mat < 0.9){  // glass
+                    list[i++] = new sphere(center, 0.2, new dielect(1.7));
+                }
+                else{// bubble
+                    list[i++] = new sphere(center, 0.2, new dielect(1.7));
+                    list[i++] = new sphere(center, -0.2, new dielect(1.7));
+                }
+            }
+        }
+    }
+
+    list[i++] = new sphere(vec3(-3, 1, 0), 1.0, new dielect(1.7));
+    list[i++] = new sphere(vec3(-1, 1, 0), 1.0, new lambertian(vec3(0.8, 0.2, 0.4)));
+    list[i++] = new sphere(vec3(1, 1, 0), 1.0, new dielect(1.7));
+    list[i++] = new sphere(vec3(1, 1, 0), -1.0, new dielect(1.7));
+    list[i++] = new sphere(vec3(3, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
+
+    return new hitable_list(list,i);
+}
+
 int main(){
     
     std::fstream File;
@@ -95,9 +105,15 @@ int main(){
     } 
 
     
-    int nx = 800, ny = 400, ns = 200;
+    int nx = 1400, ny = 700, ns = 20;
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
-    camera cam(vec3(-2,2,1), vec3(0,0,-1), vec3(0,1,0), 90, nx/ny);
+    vec3 lookfrom(13,2,8);
+    vec3 lookat(0,0,0);
+    vec3 vup(0,1,0);
+    float v_fov = 20;
+    float dist_to_focus_screen = (lookfrom - lookat).length();
+    float aperture = 0.1;
+    camera cam(lookfrom, lookat, vup, v_fov, float(nx)/float(ny), aperture, dist_to_focus_screen);
     hitable * list[5];
     list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.1, 0.2, 0.5)));
     list[1] = new sphere(vec3(0,-100.5,-1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
@@ -105,22 +121,44 @@ int main(){
     list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielect(1.7));
     list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielect(1.7));
     hitable* world = new hitable_list(list, 5);
+    world = random_scene();
     for(int j = ny - 1; j >= 0; j--)
     {
         for(int i = 0; i < nx; i++)
         {
+            // No AntiAliasing
+            // float tx = float(i)/float(nx);
+            // float ty = float(j)/float(ny);
+            // vec3 c(0.0, 0.0, 0.0);
+            // int point_num_on_lens = 10;
+            // for(int i = 0; i < point_num_on_lens; i++)
+            // {
+            //     /* code */
+            //     ray r = cam.get_ray(tx, ty);
+            //     c += color(r, world, 0);
+            // }
+            // c /= point_num_on_lens;
+            
+            
+            
             // Antialiasing
             // for each hit rigeon, emit 200 random thiner rays
             // get color of each ray
             // average the rgbs of all 200 ray to get antialiasing color of the origin hit point
+           
             vec3 c = vec3(0.0, 0.0, 0.0);
-            for(int s = 0; s < ns; s++){
-                float tx = float(i + drand48())/float(nx);
-                float ty = float(j + drand48())/float(ny);
-                ray r = cam.get_ray(tx, ty);
-                c += color(r, world, 0);
+            int point_num_on_lens = 3;
+            for(int k = 0; k < point_num_on_lens; k++)
+            {
+                for(int s = 0; s < ns; s++){
+                    float tx = float(i + drand48())/float(nx);
+                    float ty = float(j + drand48())/float(ny);
+                    ray r = cam.get_ray(tx, ty);
+                    c += color(r, world, 0);
+                }
             }
-            c /= ns;
+            c /= (ns*point_num_on_lens);
+           
             // why need gamma correction:
             // 人眼对光强度的感知和光强的变化不成线性关系
             

@@ -3,8 +3,6 @@
 #include "ray.h"
 #include "material.h"
 
-vec3 reflect(const vec3& in, const vec3& n);
-
 class metal: public material{
 public:
     vec3 albedo;

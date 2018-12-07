@@ -2,6 +2,17 @@
 #define SPHERE_H
 #include "vec3.h"
 #include "hitable.h"
+
+vec3 randend_in_unit_sphere(){
+    vec3 endpoint;
+    do
+    {
+        endpoint = vec3(drand48(), drand48(), drand48()) * float(2.0) - vec3(1.0, 1.0, 1.0);
+    } while (endpoint.squared_length() >= 1.0);
+    return endpoint;
+
+}
+
 class sphere: public hitable{
 public: 
     vec3 center;
