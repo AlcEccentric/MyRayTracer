@@ -7,6 +7,7 @@
 #include "material.h"
 #include "lambertian.h"
 #include "metal.h"
+#include "dielect.h"
 #include "float.h"
 
 vec3 backgroundColor = vec3(78,179,211) / float(255.0);
@@ -19,9 +20,22 @@ vec3 randend_in_unit_sphere(){
     return endpoint;
 
 }
+bool refract(const vec3& in, const vec3& n, float ni_over_nt, vec3& refracted){
+    vec3 u_in = normalize(in);
+    float cosi = -dot(u_in, n);
+    float sint2 =  (ni_over_nt * ni_over_nt) * (1 - cosi*cosi);
+    if(sint2 >= 1){
+        return false;
+    }else{
+        refracted = -n * sqrt(1 - sint2) + (cosi * n + u_in) * ni_over_nt;
+        return true;
+    }
+}
 vec3 reflect(const vec3& in, const vec3& n){
+    // n can points inside or outside, there is no influence. 
+    // Because in and its projection on n always points to the same orientation no matter what orientation n is.
     // dot(in, info.n)*info.n = the projection of in on info.n
-    // because in points in, so we need the reversed version of in's projection on info.n which points out
+    // because in and its projection on n points to the same orientation, we need reverse the projection
     // that is why add a minus sign
     return in - 2*dot(in, n)*n;
 }
@@ -85,10 +99,10 @@ int main(){
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
     camera cam;
     hitable * list[4];
-    list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.8, 0.3, 0.3)));
+    list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.1, 0.2, 0.5)));
     list[1] = new sphere(vec3(0,-100.5,-1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
-    list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.8));
-    list[3] = new sphere(vec3(-1,0,-1), 0.5, new metal(vec3(0.8, 0.8, 0.8), 0.2));
+    list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.2));
+    list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielect(1.7));
     hitable* world = new hitable_list(list, 4);
     for(int j = ny - 1; j >= 0; j--)
     {
