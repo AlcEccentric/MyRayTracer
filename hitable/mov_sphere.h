@@ -12,13 +12,23 @@ public:
     material* mat_ptr;
     float radius;
     movSphere() {};
-    movSphere(const vec3& c0, const vec3& c1, float t0, float t1, float r, material * m): beginCenter(c0), endCenter(c1), beginTime(t0), endTime(t1), radius(r), mat_ptr(m) {};
+    movSphere(const vec3& c0, const vec3& c1, float time0, float time1, float r, material * m): beginCenter(c0), endCenter(c1), beginTime(time0), endTime(time1), radius(r), mat_ptr(m) {};
     virtual bool hit(const ray& r, float t_min, float t_max, hit_info& h_info) const;
+    virtual bool bounding_box(float t0, float t1, aabb& box) const;
     vec3 center(float t) const;
 };
 
-vec3 movSphere::center(float t)const{
+vec3 movSphere::center(float t) const{
     return beginCenter + (t - beginTime)/(endTime - beginTime) * (endCenter - beginCenter);
+}
+
+bool movSphere::bounding_box(float time0, float time1, aabb& box) const{
+    vec3 center0 = this->center(time0);
+    vec3 center1 = this->center(time1); 
+    aabb aabb0(center0 - vec3(radius), center0 + vec3(radius));
+    aabb aabb1(center1 - vec3(radius), center1 + vec3(radius));
+    box = surrounding_box(aabb0, aabb1);
+    return true;
 }
 
 bool movSphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) const{

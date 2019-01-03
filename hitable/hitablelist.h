@@ -9,6 +9,7 @@ public:
     hitable_list() {};
     hitable_list(hitable **l, int size) : list(l), list_size(size) {};
     virtual bool hit(const ray& r, float t_min, float t_max, hit_info& info) const;
+    virtual bool bounding_box(float time0, float time1, aabb& box) const;
 };
 
 bool hitable_list::hit(const ray& r, float t_min, float t_max, hit_info& info) const{
@@ -25,5 +26,18 @@ bool hitable_list::hit(const ray& r, float t_min, float t_max, hit_info& info) c
     }
     return hitany;
     
+}
+
+bool hitable_list::bounding_box(float time0, float time1, aabb& box) const{
+    if(!list[0]->bounding_box(time0, time1, box))
+        return false;
+    
+    for(int i = 1; i < list_size; i++){
+        aabb tempBox;
+        if(!list[i]->bounding_box(time0, time1, tempBox))
+            return false;
+        surrounding_box(box, tempBox);
+    }
+    return true;
 }
 #endif

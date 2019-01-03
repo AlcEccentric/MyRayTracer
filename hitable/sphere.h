@@ -22,8 +22,10 @@ public:
     sphere(const vec3& c, float r) : center(c), radius(r) {};
     sphere(const vec3& c, float r, material * m) : center(c), radius(r), mat_ptr(m) {};
     virtual bool hit(const ray& r, float t_min, float t_max, hit_info& h_info) const;
+    virtual bool bounding_box(float time0, float time1, aabb& box) const;
     
 };
+
 bool sphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) const{
     float a = r.dir().squared_length();
     float b = dot(r.ori() - center, r.dir()) * 2;
@@ -60,5 +62,10 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) const
         // if two points both fall outside hit range, return false
         return false;
     }
+}
+
+bool sphere::bounding_box(float time0, float time1, aabb& box) const{
+    box = aabb(center - vec3(radius), center + vec3(radius));
+    return true;
 }
 #endif

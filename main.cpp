@@ -5,6 +5,7 @@
 #include "hitable/hitablelist.h"
 #include "hitable/sphere.h"
 #include "hitable/mov_sphere.h"
+#include "hitable/bvh_node.h"
 #include "material/material.h"
 #include "material/lambertian.h"
 #include "material/metal.h"
@@ -59,7 +60,7 @@ vec3 color(const ray& r, hitable * world, int depth){
 
 }
 
-hitable *random_scene() {
+hitable_list *random_scene() {
     int n = 500;
     hitable **list = new hitable*[n+1];
     list[0] =  new sphere(vec3(0,-1000,0), 1000, new lambertian(vec3(0.5, 0.8, 0.5)));
@@ -121,8 +122,9 @@ int main(){
     list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.2));
     list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielect(1.7));
     list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielect(1.7));
-    hitable* world = new hitable_list(list, 5);
-    world = random_scene();
+    // hitable* world = new hitable_list(list, 5);
+    hitable_list* worldlist = random_scene();
+    hitable* world = new bvhNode(worldlist->list, worldlist->list_size, 0.0, 1.0);
     int count = 0;
     for(int j = ny - 1; j >= 0; j--)
     {
