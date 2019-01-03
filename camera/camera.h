@@ -18,13 +18,18 @@ public:
     vec3 y_basis;
     vec3 z_basis;
     float lens_radius;
-    camera(const vec3& viewfrom, const vec3& viewto, const vec3& vup,float v_fov_degree, float w_h_ratio, float aperture, float dist_to_focus_screen){
+    float openAperTime;
+    float closeAperTime;
+
+    camera(const vec3& viewfrom, const vec3& viewto, const vec3& vup,float v_fov_degree, float w_h_ratio, float aperture, float dist_to_focus_screen, float t0, float t1){
         float fov = v_fov_degree * M_PI / 180;
         float half_height = tan(fov/2);
         float half_width = half_height * w_h_ratio;
         z_basis = normalize(viewfrom - viewto);
         x_basis = normalize(cross(vup, z_basis));
         y_basis = cross(z_basis, x_basis); 
+        openAperTime = t0;
+        closeAperTime = t1;
         origin = viewfrom;
         lens_radius = aperture / 2;
         // the original screen is 1 unit away from the view plane
@@ -37,8 +42,9 @@ public:
     };
     ray get_ray(float x, float y){ 
         vec3 rd = lens_radius * rand_in_unit_dist();
+        float randTime = openAperTime + drand48()*(closeAperTime - openAperTime);
         vec3 offset = rd.x() * x_basis + rd.y() * y_basis + rd.z() * z_basis;
-        return ray(origin + offset, leftLowerCorner + x * horizontalRange + y * verticalRange - origin - offset);
+        return ray(origin + offset, leftLowerCorner + x * horizontalRange + y * verticalRange - origin - offset, randTime);
     };
 };
 #endif

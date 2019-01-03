@@ -1,7 +1,7 @@
 #ifndef HITABLELIST_H
 #define HITABLELIST_H
 #include "hitable.h"
-#include "vec3.h"
+#include "../tools/vec3.h"
 class hitable_list: public hitable{
 public:
     hitable ** list;

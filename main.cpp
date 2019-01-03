@@ -1,13 +1,14 @@
 #include <fstream>
 #include <iostream>
-#include "ray.h"
-#include "hitablelist.h"
-#include "sphere.h"
-#include "camera.h"
-#include "material.h"
-#include "lambertian.h"
-#include "metal.h"
-#include "dielect.h"
+#include "camera/ray.h"
+#include "camera/camera.h"
+#include "hitable/hitablelist.h"
+#include "hitable/sphere.h"
+#include "hitable/mov_sphere.h"
+#include "material/material.h"
+#include "material/lambertian.h"
+#include "material/metal.h"
+#include "material/dielect.h"
 #include "float.h"
 
 vec3 backgroundColor = vec3(78,179,211) / float(255.0);
@@ -69,7 +70,7 @@ hitable *random_scene() {
             vec3 center(a+0.9*drand48(),0.2,b+0.9*drand48()); 
             if ((center-vec3(3,0.2,0)).length() > 0.9) { 
                 if (choose_mat < 0.45) {  // diffuse
-                    list[i++] = new sphere(center, 0.2, new lambertian(vec3(drand48()*drand48(), drand48()*drand48(), drand48()*drand48())));
+                    list[i++] = new movSphere(center, center + vec3(0.0, drand48()*0.5, 0.0), 0.0, 1.0, 0.2, new lambertian(vec3(drand48()*drand48(), drand48()*drand48(), drand48()*drand48())));
                 }
                 else if (choose_mat < 0.75) { // metal
                     list[i++] = new sphere(center, 0.2,
@@ -105,15 +106,15 @@ int main(){
     } 
 
     
-    int nx = 1400, ny = 700, ns = 20;
+    int nx = 600, ny = 300, ns = 2;
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
-    vec3 lookfrom(13,2,8);
+    vec3 lookfrom(13,2,3);
     vec3 lookat(0,0,0);
     vec3 vup(0,1,0);
     float v_fov = 20;
     float dist_to_focus_screen = (lookfrom - lookat).length();
-    float aperture = 0.1;
-    camera cam(lookfrom, lookat, vup, v_fov, float(nx)/float(ny), aperture, dist_to_focus_screen);
+    float aperture = 0.0;
+    camera cam(lookfrom, lookat, vup, v_fov, float(nx)/float(ny), aperture, dist_to_focus_screen, 0.0, 1.0);
     hitable * list[5];
     list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.1, 0.2, 0.5)));
     list[1] = new sphere(vec3(0,-100.5,-1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
@@ -122,6 +123,7 @@ int main(){
     list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielect(1.7));
     hitable* world = new hitable_list(list, 5);
     world = random_scene();
+    int count = 0;
     for(int j = ny - 1; j >= 0; j--)
     {
         for(int i = 0; i < nx; i++)
@@ -171,6 +173,8 @@ int main(){
             int ig = int(255.99 * c.g());
             int ib = int(255.99 * c.b());
             File<< ir << " " << ig << " " << ib << "\n";
+            count++;
+            fprintf(stderr, "\r%3d%c", uint32_t(count / (float)(nx*ny) * 100), '%');
         }
     }
     

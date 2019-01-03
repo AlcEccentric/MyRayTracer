@@ -1,6 +1,6 @@
 #ifndef DIELECT_H
 #define DIELECT_H
-#include "ray.h"
+#include "../camera/ray.h"
 #include "material.h"
 #include <stdlib.h>
 

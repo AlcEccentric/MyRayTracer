@@ -1,6 +1,6 @@
 #ifndef METAL_H
 #define METAL_H
-#include "ray.h"
+#include "../camera/ray.h"
 #include "material.h"
 
 class metal: public material{

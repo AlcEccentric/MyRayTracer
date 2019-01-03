@@ -1,7 +1,7 @@
 #ifndef MATERIAL_H
 #define MATERIAL_H
-#include "ray.h"
-#include "hitable.h"
+#include "../camera/ray.h"
+#include "../hitable/hitable.h"
 
 vec3 reflect(const vec3& in, const vec3& n){
     // n can points inside or outside, there is no influence. 

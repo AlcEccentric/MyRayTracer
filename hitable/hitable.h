@@ -1,7 +1,7 @@
 #ifndef HITABLE_H
 #define HITABLE_H
-#include "ray.h"
-#include "vec3.h"
+#include "../camera/ray.h"
+#include "../tools/vec3.h"
 class material;
 struct hit_info{
     float t; 

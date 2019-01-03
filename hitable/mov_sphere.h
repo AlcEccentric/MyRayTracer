@@ -1,30 +1,28 @@
-#ifndef SPHERE_H
-#define SPHERE_H
-#include "vec3.h"
+#ifndef MOV_SPHERE_H
+#define MOV_SPHERE_H
 #include "hitable.h"
+#include "../material/material.h"
+#include "../tools/vec3.h"
 
-vec3 randend_in_unit_sphere(){
-    vec3 endpoint;
-    do
-    {
-        endpoint = vec3(drand48(), drand48(), drand48()) * float(2.0) - vec3(1.0, 1.0, 1.0);
-    } while (endpoint.squared_length() >= 1.0);
-    return endpoint;
-
-}
-
-class sphere: public hitable{
-public: 
-    vec3 center;
+class movSphere : public hitable {
+public:
+    vec3 beginCenter;
+    vec3 endCenter;
+    float beginTime, endTime;
     material* mat_ptr;
     float radius;
-    sphere() {};
-    sphere(const vec3& c, float r) : center(c), radius(r) {};
-    sphere(const vec3& c, float r, material * m) : center(c), radius(r), mat_ptr(m) {};
+    movSphere() {};
+    movSphere(const vec3& c0, const vec3& c1, float t0, float t1, float r, material * m): beginCenter(c0), endCenter(c1), beginTime(t0), endTime(t1), radius(r), mat_ptr(m) {};
     virtual bool hit(const ray& r, float t_min, float t_max, hit_info& h_info) const;
-    
+    vec3 center(float t) const;
 };
-bool sphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) const{
+
+vec3 movSphere::center(float t)const{
+    return beginCenter + (t - beginTime)/(endTime - beginTime) * (endCenter - beginCenter);
+}
+
+bool movSphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) const{
+    vec3 center = this->center(r.time());
     float a = r.dir().squared_length();
     float b = dot(r.ori() - center, r.dir()) * 2;
     float c = (r.ori() - center).squared_length() - radius * radius;
@@ -60,5 +58,6 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) const
         // if two points both fall outside hit range, return false
         return false;
     }
+
 }
 #endif
