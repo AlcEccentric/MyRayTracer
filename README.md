@@ -1,1 +1,1 @@
-This is a simple ray tracer following shirley's Ray Tracing in One Weekend.
+This is a simple ray tracer following shirley's Ray Tracing in One Weekend & Ray Tracing the Next Week. 

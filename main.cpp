@@ -10,6 +10,8 @@
 #include "material/lambertian.h"
 #include "material/metal.h"
 #include "material/dielect.h"
+#include "texture/constant_texture.h"
+#include "texture/checker_texture.h"
 #include "float.h"
 
 vec3 backgroundColor = vec3(78,179,211) / float(255.0);
@@ -63,19 +65,28 @@ vec3 color(const ray& r, hitable * world, int depth){
 hitable_list *random_scene() {
     int n = 500;
     hitable **list = new hitable*[n+1];
-    list[0] =  new sphere(vec3(0,-1000,0), 1000, new lambertian(vec3(0.5, 0.8, 0.5)));
+    texture * checker0 = new constantTexture(vec3(0.2, 0.3, 0.1));
+    texture * checker1 = new constantTexture(vec3(0.9, 0.9, 0.9));
+    list[0] =  new sphere(vec3(0,-1000,0), 1000, new lambertian(new checkerTexture(checker0, checker1)));
     int i = 1;
     for (int a = -11; a < 11; a++) {
         for (int b = -11; b < 11; b++) {
             float choose_mat = drand48();
             vec3 center(a+0.9*drand48(),0.2,b+0.9*drand48()); 
             if ((center-vec3(3,0.2,0)).length() > 0.9) { 
-                if (choose_mat < 0.45) {  // diffuse
-                    list[i++] = new movSphere(center, center + vec3(0.0, drand48()*0.5, 0.0), 0.0, 1.0, 0.2, new lambertian(vec3(drand48()*drand48(), drand48()*drand48(), drand48()*drand48())));
+                if (choose_mat < 0.3) {
+                    list[i++] = new sphere(center, 0.2, new lambertian(
+                        new constantTexture(vec3(drand48()*drand48(), drand48()*drand48(), drand48()*drand48())))
+                    );
+                }
+                else if (choose_mat < 0.45) {  // diffuse
+                    list[i++] = new movSphere(center, center + vec3(0.0, drand48()*0.5, 0.0), 0.0, 1.0, 0.2, new lambertian(
+                        new constantTexture(vec3(drand48()*drand48(), drand48()*drand48(), drand48()*drand48())))
+                    );
                 }
                 else if (choose_mat < 0.75) { // metal
                     list[i++] = new sphere(center, 0.2,
-                            new metal(vec3(0.5*(1 + drand48()), 0.5*(1 + drand48()), 0.5*(1 + drand48())),  0.4*drand48()));
+                            new metal(new constantTexture(vec3(0.5*(1 + drand48()), 0.5*(1 + drand48()), 0.5*(1 + drand48()))),  0.4*drand48()));
                 }
                 else if(choose_mat < 0.9){  // glass
                     list[i++] = new sphere(center, 0.2, new dielect(1.7));
@@ -89,10 +100,10 @@ hitable_list *random_scene() {
     }
 
     list[i++] = new sphere(vec3(-3, 1, 0), 1.0, new dielect(1.7));
-    list[i++] = new sphere(vec3(-1, 1, 0), 1.0, new lambertian(vec3(0.8, 0.2, 0.4)));
+    list[i++] = new sphere(vec3(-1, 1, 0), 1.0, new lambertian(new constantTexture(vec3(0.8, 0.2, 0.4))));
     list[i++] = new sphere(vec3(1, 1, 0), 1.0, new dielect(1.7));
     list[i++] = new sphere(vec3(1, 1, 0), -1.0, new dielect(1.7));
-    list[i++] = new sphere(vec3(3, 1, 0), 1.0, new metal(vec3(0.7, 0.6, 0.5), 0.0));
+    list[i++] = new sphere(vec3(3, 1, 0), 1.0, new metal(new constantTexture(vec3(0.7, 0.6, 0.5)), 0.0));
 
     return new hitable_list(list,i);
 }
@@ -116,12 +127,12 @@ int main(){
     float dist_to_focus_screen = (lookfrom - lookat).length();
     float aperture = 0.0;
     camera cam(lookfrom, lookat, vup, v_fov, float(nx)/float(ny), aperture, dist_to_focus_screen, 0.0, 1.0);
-    hitable * list[5];
-    list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.1, 0.2, 0.5)));
-    list[1] = new sphere(vec3(0,-100.5,-1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
-    list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.2));
-    list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielect(1.7));
-    list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielect(1.7));
+    // hitable * list[5];
+    // list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.1, 0.2, 0.5)));
+    // list[1] = new sphere(vec3(0,-100.5,-1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
+    // list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.2));
+    // list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielect(1.7));
+    // list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielect(1.7));
     // hitable* world = new hitable_list(list, 5);
     hitable_list* worldlist = random_scene();
     hitable* world = new bvhNode(worldlist->list, worldlist->list_size, 0.0, 1.0);
