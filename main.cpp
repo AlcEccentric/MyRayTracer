@@ -12,9 +12,13 @@
 #include "material/dielect.h"
 #include "texture/constant_texture.h"
 #include "texture/checker_texture.h"
+#include "texture/noise_texture.h"
+#include "texture/mosaic_texture.h"
+#include "texture/marble1_texture.h"
+#include "texture/marble2_texture.h"
 #include "float.h"
 
-vec3 backgroundColor = vec3(78,179,211) / float(255.0);
+vec3 backgroundColor = vec3(0.5, 0.7, 1.0) ;
 
 // the meaning of this function
 // get color of the light sent by "world" from "ray"'s direction 
@@ -107,6 +111,21 @@ hitable_list *random_scene() {
 
     return new hitable_list(list,i);
 }
+hitable_list *two_spheres() {
+    hitable **list = new hitable*[3];
+    texture* marble1Tex = new marble1Texture(1.0, vec3(1.0), 0.5);
+    texture* marble2Tex = new marble2Texture(1.0, vec3(1.0), 0.5);
+    texture* mosaicTex = new mosaicTexture(1.0, vec3(0.2, 0.8, 0.3));
+    list[0] = new sphere(vec3(0, -1000, 0), 1000, new lambertian(mosaicTex));
+    list[1] = new sphere(vec3(1, 2, 0), 2, new lambertian(marble1Tex));
+    list[2] = new sphere(vec3(-1, 2, 0), 2, new lambertian(marble2Tex));
+    return new hitable_list(list, 3);
+    // list[0] = new sphere(vec3(0,0,-1), 0.5, new lambertian(vec3(0.1, 0.2, 0.5)));
+    // list[1] = new sphere(vec3(0,-100.5,-1), 100, new lambertian(vec3(0.8, 0.8, 0.0)));
+    // list[2] = new sphere(vec3(1,0,-1), 0.5, new metal(vec3(0.8, 0.6, 0.2), 0.2));
+    // list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielect(1.7));
+    // list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielect(1.7));
+}
 
 int main(){
     
@@ -120,8 +139,8 @@ int main(){
     
     int nx = 600, ny = 300, ns = 2;
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
-    vec3 lookfrom(13,2,3);
-    vec3 lookat(0,0,0);
+    vec3 lookfrom(13,2,15);
+    vec3 lookat(0,1,0);
     vec3 vup(0,1,0);
     float v_fov = 20;
     float dist_to_focus_screen = (lookfrom - lookat).length();
@@ -134,8 +153,10 @@ int main(){
     // list[3] = new sphere(vec3(-1,0,-1), 0.5, new dielect(1.7));
     // list[4] = new sphere(vec3(-1,0,-1), -0.45, new dielect(1.7));
     // hitable* world = new hitable_list(list, 5);
-    hitable_list* worldlist = random_scene();
-    hitable* world = new bvhNode(worldlist->list, worldlist->list_size, 0.0, 1.0);
+    // hitable_list* worldlist = random_scene();
+    // hitable* world = new bvhNode(worldlist->list, worldlist->list_size, 0.0, 1.0);
+    hitable_list* worldlist = two_spheres();
+    hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
     int count = 0;
     for(int j = ny - 1; j >= 0; j--)
     {
