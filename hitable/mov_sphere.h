@@ -3,7 +3,7 @@
 #include "hitable.h"
 #include "../material/material.h"
 #include "../tools/vec3.h"
-
+extern void get_sphere_uv(const vec3& h_point, float &u, float &v);
 class movSphere : public hitable {
 public:
     vec3 beginCenter;
@@ -51,6 +51,7 @@ bool movSphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) co
             // when radius is negative
             // the normal will points to the center
             // this kind of normal will be useful when rendering a bubble.
+            get_sphere_uv(h_info.p, h_info.u, h_info.v);
             h_info.n = (h_info.p - center) / radius;
             h_info.t = small_root;
             h_info.mat_ptr = mat_ptr;
@@ -60,6 +61,7 @@ bool movSphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) co
         float large_root = (-b - sqrt(delta))/(2.0*a);
         if(large_root > t_min && large_root < t_max){
             h_info.p = r.point_at_parameter(large_root);
+            get_sphere_uv(h_info.p, h_info.u, h_info.v);
             h_info.n = (h_info.p - center) / radius;
             h_info.t = large_root;
             h_info.mat_ptr = mat_ptr;

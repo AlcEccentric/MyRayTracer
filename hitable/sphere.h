@@ -2,7 +2,12 @@
 #define SPHERE_H
 #include "../tools/vec3.h"
 #include "hitable.h"
-
+void get_sphere_uv(const vec3& p, float &u, float &v){
+    float phi = atan2(p.z(), p.x());
+    float theta = asin(p.y());
+    u = 1 - (phi + M_PI) / (2*M_PI);
+    v = (theta + M_PI/2) / M_PI;
+}
 vec3 randend_in_unit_sphere(){
     vec3 endpoint;
     do
@@ -45,6 +50,7 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) const
             // when radius is negative
             // the normal will points to the center
             // this kind of normal will be useful when rendering a bubble.
+            get_sphere_uv(h_info.p, h_info.u, h_info.v);
             h_info.n = (h_info.p - center) / radius;
             h_info.t = small_root;
             h_info.mat_ptr = mat_ptr;
@@ -54,6 +60,7 @@ bool sphere::hit(const ray& r, float t_min, float t_max, hit_info& h_info) const
         float large_root = (-b - sqrt(delta))/(2.0*a);
         if(large_root > t_min && large_root < t_max){
             h_info.p = r.point_at_parameter(large_root);
+            get_sphere_uv(h_info.p, h_info.u, h_info.v);
             h_info.n = (h_info.p - center) / radius;
             h_info.t = large_root;
             h_info.mat_ptr = mat_ptr;

@@ -12,7 +12,7 @@ public:
         vec3 randDir = info.n + randend_in_unit_sphere();
         scattered = ray(info.p, randDir, r_in.time());
         vec3 hitPoint = info.p;
-        attenuation = albedo->tex_value(0, 0, hitPoint);// diffuse will only have constant texture
+        attenuation = albedo->tex_value(info.u, info.v, hitPoint);// diffuse will only have constant texture
         return true;
     };
 };
