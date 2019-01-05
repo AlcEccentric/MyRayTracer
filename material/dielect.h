@@ -21,7 +21,7 @@ public:
     float die_ri;
     // no attenuation be cause glass does not absorb
     dielect( float ri) :  die_ri(ri) {};
-    virtual bool scatter(const ray& r_in, const hit_info& info, vec3& attenuation, ray& scattered) const{
+    virtual bool scatter(const ray& r_in, const hit_info& info, vec3& attenuation, ray& scattered) {
         float cos_in = dot(normalize(r_in.dir()), info.n);
         vec3 ni_normal;
         float ni_over_nt;

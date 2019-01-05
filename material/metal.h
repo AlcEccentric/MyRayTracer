@@ -8,7 +8,7 @@ public:
     texture* albedo;
     float fuzz;
     metal(texture* a, float f):albedo(a) {if(f < 1) fuzz = f; else fuzz = 1;};
-    virtual bool scatter(const ray& r_in, const hit_info& info, vec3& attenuation, ray& scattered) const{
+    virtual bool scatter(const ray& r_in, const hit_info& info, vec3& attenuation, ray& scattered) {
         
         scattered = ray(info.p, reflect(r_in.dir(), info.n) + fuzz * randend_in_unit_sphere());
         vec3 hitPoint = info.p;

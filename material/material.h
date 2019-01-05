@@ -27,7 +27,8 @@ bool refract(const vec3& in, const vec3& n, float ni_over_nt, vec3& refracted){
 class material{
 public:
     // attenuation is used to adjust the color relected
-    virtual bool scatter(const ray& r_in, const hit_info& info, vec3& attenuation, ray& scattered) const = 0;
+    virtual bool isPhong(){ return false; }
+    virtual bool scatter(const ray& r_in, const hit_info& info, vec3& attenuation, ray& scattered) = 0;
     virtual vec3 emitted(float u, float v, const vec3& p) const {
         return vec3(0, 0, 0);
     }

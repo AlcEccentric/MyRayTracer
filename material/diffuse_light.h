@@ -8,7 +8,7 @@ class diffuseLight: public material{
 public:
     // attenuation is used to adjust the color relected
     diffuseLight(texture* t): emit(t) {};
-    virtual bool scatter(const ray& r_in, const hit_info& info, vec3& attenuation, ray& scattered) const {
+    virtual bool scatter(const ray& r_in, const hit_info& info, vec3& attenuation, ray& scattered) {
         return false;
     };
     virtual vec3 emitted(float u, float v, const vec3& p) const {

@@ -1,5 +1,6 @@
 #include <fstream>
 #include <iostream>
+#include <cmath>
 #include "camera/ray.h"
 #include "camera/camera.h"
 #include "hitable/hitablelist.h"
@@ -20,6 +21,7 @@
 #include "material/lambertian.h"
 #include "material/metal.h"
 #include "material/dielect.h"
+#include "material/phong.h"
 #include "material/diffuse_light.h"
 #include "texture/constant_texture.h"
 #include "texture/checker_texture.h"
@@ -32,8 +34,7 @@
 #include "tools/stb_image.h"
 #include "float.h"
 
-vec3 backgroundColor = vec3(0.2, 0.2, 0.2) ;
-
+vec3 backgroundColor = vec3(0.5, 0.5, 0.5) ;
 // the meaning of this function
 // get color of the light sent by "world" from "ray"'s direction 
 // depth count the number of reflecions have been considered
@@ -56,7 +57,24 @@ vec3 color(const ray& r, hitable * world, int depth){
         // consider less than 50 times of reflection
         // if the no. of reflection is greater than 50,
         // we treat this case as no reflection (i.e., not scattered)
-        if(r_hit_info.mat_ptr->scatter(r, r_hit_info, attenu, scattered) && depth < 50){
+        if(r_hit_info.mat_ptr->scatter(r, r_hit_info, attenu, scattered) && depth < 10){
+            if(r_hit_info.mat_ptr->isPhong()){
+                phong* ph = (phong*)r_hit_info.mat_ptr;
+                ray shadDetect;
+                ph->phongScatter(r, r_hit_info, attenu, shadDetect);
+                hit_info shadInfo;
+                int vis;
+                if(world->hit(shadDetect, 0.001, ph->lightDist, shadInfo))
+                    vis = 0;
+                else
+                    vis = 1;
+
+                vec3 diffuse = vis * attenu * ph->intensity * std::max(0.0f, dot(r_hit_info.n, -ph->lightDir));
+                vec3 reflected = reflect(ph->lightDir, r_hit_info.n);
+                vec3 specular = vis * ph->intensity * std::pow(std::max(0.0f, dot(reflected, -ph->viewDir)), ph->n);
+                return diffuse * ph->Kd + specular * (1 - ph->Kd);
+                
+            }
             vec3 rgb = color(scattered, world, depth + 1);
             // the result = scattered light + emitted light
             // return attenu * rgb + r_hit_info.mat_ptr->emitted(r_hit_info.u, r_hit_info.v, r_hit_info.p);
@@ -75,7 +93,7 @@ vec3 color(const ray& r, hitable * world, int depth){
         // +1 and *0.5 make t fall in [0.0, 1.0]
 
         float k = 0.5 * (normalize(r.dir()).y() + 1.0);
-        return vec3(0.5, 0.5, 0.5) * (1.0-k) + backgroundColor * k;   
+        return vec3(1, 1, 1) * (1.0-k) + backgroundColor * k;   
     
         // return vec3(0.0, 0.0, 0.0);
     }
@@ -157,7 +175,6 @@ hitable_list *img_sphere() {
     list[0] = new sphere(vec3(0, 0, 0), 2, new lambertian(imgTex));
 
     return new hitable_list(list, 1);
-
 }
 hitable_list *dark_room() {
     hitable **list = new hitable*[6];
@@ -175,7 +192,16 @@ hitable_list *dark_room() {
     list[5] = new yzRect(1, 3, -1, 1, 4, new diffuseLight(whiteLight));
     return new hitable_list(list, 6);
 }
+hitable_list *phong_sphere(vec3& viewDir) {
+    hitable **list = new hitable*[2];
+    texture* blue = new constantTexture(vec3(0.1, 0.2, 0.5));
+    texture* mosaicTex = new mosaicTexture(1.0, vec3(0.2, 0.8, 0.3));
 
+    list[1] = new sphere(vec3(0, -1000, 0), 1000, new lambertian(mosaicTex));
+    list[0] = new sphere(vec3(2, 2, 0), 2, new phong(blue, vec3(-1), viewDir, 0.6, 15, 10, 1.0));
+
+    return new hitable_list(list, 2);
+}
 hitable_list *cornell_box(float front, float back, float top, float bottom, float left, float right) {
     hitable **list = new hitable*[13];
     vec3 span(left - right, top - bottom, back - front);
@@ -275,8 +301,11 @@ int main(){
     float right = 0;
     float top = 50;
     float bottom = 0;
-    vec3 lookfrom((left+right)/2, (top+bottom)/2, front - 1 * (back - front));
-    vec3 lookat((left+right)/2, (top+bottom)/2, front);
+    // vec3 lookfrom((left+right)/2, (top+bottom)/2, front - 1 * (back - front));
+    // vec3 lookat((left+right)/2, (top+bottom)/2, front);
+    vec3 lookfrom(13,2,8);
+    vec3 lookat(0,2,0);
+    vec3 viewDir = normalize(lookat - lookfrom);
     vec3 vup(0,1,0);
     float v_fov = 40;
     float dist_to_focus_screen = (lookfrom - lookat).length();
@@ -297,8 +326,10 @@ int main(){
     // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
     // hitable_list* worldlist = dark_room();
     // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
-    hitable_list* worldlist = cornell_box(front, back, top, bottom, left, right);
+    hitable_list* worldlist = phong_sphere(viewDir);
     hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
+    // hitable_list* worldlist = cornell_box(front, back, top, bottom, left, right);
+    // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
     int count = 0;
     for(int j = ny - 1; j >= 0; j--)
     {
