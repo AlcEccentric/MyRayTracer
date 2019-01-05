@@ -13,10 +13,10 @@ public:
     imageTexture(){};
     imageTexture(unsigned char* pix, int width, int height):data(pix), nx(width), ny(height){};
 
-    virtual vec3 tex_value(float u, float v, vec3& p) const;
+    virtual vec3 tex_value(float u, float v, const vec3& p) const;
 };
 
-vec3 imageTexture::tex_value(float u, float v, vec3& p) const{
+vec3 imageTexture::tex_value(float u, float v, const vec3& p) const{
     int i = u*nx;
     int j = (1-v)*ny - 0.001;
     clamp(i, 0, nx-1);

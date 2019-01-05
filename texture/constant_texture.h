@@ -9,10 +9,10 @@ public:
         col = color;
     };
 
-    virtual vec3 tex_value(float u, float v, vec3& p) const;
+    virtual vec3 tex_value(float u, float v, const vec3& p) const;
 };
 
-vec3 constantTexture::tex_value(float u, float v, vec3& p) const{
+vec3 constantTexture::tex_value(float u, float v, const vec3& p) const{
     return col;
 }
 

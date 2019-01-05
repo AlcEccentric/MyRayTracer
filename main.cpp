@@ -5,11 +5,15 @@
 #include "hitable/hitablelist.h"
 #include "hitable/sphere.h"
 #include "hitable/mov_sphere.h"
+#include "hitable/xy_rect.h"
+#include "hitable/xz_rect.h"
+#include "hitable/yz_rect.h"
 #include "hitable/bvh_node.h"
 #include "material/material.h"
 #include "material/lambertian.h"
 #include "material/metal.h"
 #include "material/dielect.h"
+#include "material/diffuse_light.h"
 #include "texture/constant_texture.h"
 #include "texture/checker_texture.h"
 #include "texture/noise_texture.h"
@@ -47,15 +51,14 @@ vec3 color(const ray& r, hitable * world, int depth){
         // we treat this case as no reflection (i.e., not scattered)
         if(r_hit_info.mat_ptr->scatter(r, r_hit_info, attenu, scattered) && depth < 50){
             vec3 rgb = color(scattered, world, depth + 1);
-            return vec3(
-                attenu.x() * rgb.x(),
-                attenu.y() * rgb.y(),
-                attenu.z() * rgb.z()
-            );
+            // the result = scattered light + emitted light
+            // return attenu * rgb + r_hit_info.mat_ptr->emitted(r_hit_info.u, r_hit_info.v, r_hit_info.p);
+            return attenu * rgb ;
         }else{
             // ray does not get scattered means no color will be reflected from the surface
-            // return black
-            return vec3(0.0, 0.0, 0.0);
+            // only return emitted light
+            return r_hit_info.mat_ptr->emitted(r_hit_info.u, r_hit_info.v, r_hit_info.p);
+            // return vec3(0, 0, 0);
         }
         
         
@@ -63,8 +66,11 @@ vec3 color(const ray& r, hitable * world, int depth){
         // if the ray hits places in the background we generate background color
         // the normalized coordinate is in [-1.0, 1.0]
         // +1 and *0.5 make t fall in [0.0, 1.0]
-        float k = 0.5 * (normalize(r.dir()).y() + 1.0);
-        return vec3(1.0, 1.0, 1.0) * (1.0-k) + backgroundColor * k;   
+
+        // float k = 0.5 * (normalize(r.dir()).y() + 1.0);
+        // return vec3(1.0, 1.0, 1.0) * (1.0-k) + backgroundColor * k;   
+    
+        return vec3(0.0, 0.0, 0.0);
     }
 
 }
@@ -117,23 +123,22 @@ hitable_list *random_scene() {
 hitable_list *two_spheres() {
     hitable **list = new hitable*[3];
 
-    int width, height, nrChannels;
-    unsigned char *data = stbi_load("earthmap.jpg", &width, &height, &nrChannels, 0);
+    // int width, height, nrChannels;
+    // unsigned char *data = stbi_load("earthmap.jpg", &width, &height, &nrChannels, 0);
     
-    // texture* marble1Tex = new marble1Texture(1.0, vec3(1.0), 0.5);
-    texture* imgTex = new imageTexture(data, width, height);
+    texture* marble1Tex = new marble1Texture(1.0, vec3(1.0), 0.5);
+    // texture* imgTex = new imageTexture(data, width, height);
     texture* marble2Tex = new marble2Texture(1.0, vec3(1.0), 0.5);
     texture* mosaicTex = new mosaicTexture(1.0, vec3(0.2, 0.8, 0.3));
 
     list[0] = new sphere(vec3(0, -1000, 0), 1000, new lambertian(mosaicTex));
-    // list[1] = new sphere(vec3(1, 2, 0), 2, new lambertian(marble1Tex));
-    list[1] = new sphere(vec3(1, 2, 0), 2, new lambertian(imgTex));
+    list[1] = new sphere(vec3(1, 2, 0), 2, new lambertian(marble1Tex));
+    // list[1] = new sphere(vec3(1, 2, 0), 2, new lambertian(imgTex));
     list[2] = new sphere(vec3(-1, 2, 0), 2, new lambertian(marble2Tex));
 
     return new hitable_list(list, 3);
 
 }
-
 hitable_list *img_sphere() {
     hitable **list = new hitable*[1];
 
@@ -147,7 +152,25 @@ hitable_list *img_sphere() {
     return new hitable_list(list, 1);
 
 }
+hitable_list *dark_room() {
+    hitable **list = new hitable*[6];
 
+    texture* whiteLight = new constantTexture(vec3(4));
+    texture* marble1Tex = new marble1Texture(1.0, vec3(1.0), 0.5);
+    texture* marble2Tex = new marble2Texture(1.0, vec3(1.0), 0.5);
+    texture* mosaicTex = new mosaicTexture(1.0, vec3(0.2, 0.8, 0.3));
+
+    list[0] = new sphere(vec3(0, -1000, 0), 1000, new lambertian(mosaicTex));
+    list[1] = new sphere(vec3(1, 2, 0), 2, new lambertian(marble1Tex));
+    list[2] = new sphere(vec3(-1, 2, 0), 2, new lambertian(marble2Tex));
+    list[3] = new xyRect(-1, 1, 1, 3, 3, new diffuseLight(whiteLight));
+    list[4] = new xzRect(-1, 1, -1, 1, 5, new diffuseLight(whiteLight));
+    list[5] = new yzRect(1, 3, -1, 1, 4, new diffuseLight(whiteLight));
+
+
+    return new hitable_list(list, 6);
+
+}
 int main(){
     
     std::fstream File;
@@ -158,10 +181,10 @@ int main(){
     } 
 
     
-    int nx = 600, ny = 300, ns = 2;
+    int nx = 600, ny = 300, ns = 5;
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
-    vec3 lookfrom(13,0,15);
-    vec3 lookat(0,0,0);
+    vec3 lookfrom(18, 3, 15);
+    vec3 lookat(0,2.5,0);
     vec3 vup(0,1,0);
     float v_fov = 20;
     float dist_to_focus_screen = (lookfrom - lookat).length();
@@ -178,7 +201,9 @@ int main(){
     // hitable* world = new bvhNode(worldlist->list, worldlist->list_size, 0.0, 1.0);
     // hitable_list* worldlist = two_spheres();
     // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
-    hitable_list* worldlist = img_sphere();
+    // hitable_list* worldlist = img_sphere();
+    // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
+    hitable_list* worldlist = dark_room();
     hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
     int count = 0;
     for(int j = ny - 1; j >= 0; j--)

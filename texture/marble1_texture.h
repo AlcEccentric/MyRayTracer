@@ -6,7 +6,7 @@
 class marble1Texture : public texture{
 public:
     marble1Texture(float scale, vec3 col, float att = 1.0):sc(scale), color(col), atten(att){};
-    virtual vec3 tex_value(float u, float v, vec3& h_point) const {
+    virtual vec3 tex_value(float u, float v, const vec3& h_point) const {
         return perlinNoise.turbo(h_point*sc) * color * atten;
     }
     perlin perlinNoise;
