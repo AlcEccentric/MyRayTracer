@@ -40,5 +40,6 @@ box::box(const vec3& v0, const vec3& v1, material* mtr){
     //right
     list[i++] = new yzRect(v0.y(), v1.y(), v0.z(), v1.z(), v1.x(), mtr);
     rectList = new hitable_list(list, i);
+
 }
 #endif

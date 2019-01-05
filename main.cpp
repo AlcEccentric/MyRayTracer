@@ -11,6 +11,11 @@
 #include "hitable/bvh_node.h"
 #include "hitable/rev_normal_obj.h"
 #include "hitable/box.h"
+#include "hitable/rotated_x.h"
+#include "hitable/rotated_y.h"
+#include "hitable/rotated_z.h"
+#include "hitable/translated.h"
+#include "hitable/box.h"
 #include "material/material.h"
 #include "material/lambertian.h"
 #include "material/metal.h"
@@ -27,7 +32,7 @@
 #include "tools/stb_image.h"
 #include "float.h"
 
-vec3 backgroundColor = vec3(0.5, 0.7, 1.0) ;
+vec3 backgroundColor = vec3(0.2, 0.2, 0.2) ;
 
 // the meaning of this function
 // get color of the light sent by "world" from "ray"'s direction 
@@ -69,10 +74,10 @@ vec3 color(const ray& r, hitable * world, int depth){
         // the normalized coordinate is in [-1.0, 1.0]
         // +1 and *0.5 make t fall in [0.0, 1.0]
 
-        // float k = 0.5 * (normalize(r.dir()).y() + 1.0);
-        // return vec3(1.0, 1.0, 1.0) * (1.0-k) + backgroundColor * k;   
+        float k = 0.5 * (normalize(r.dir()).y() + 1.0);
+        return vec3(0.5, 0.5, 0.5) * (1.0-k) + backgroundColor * k;   
     
-        return vec3(0.0, 0.0, 0.0);
+        // return vec3(0.0, 0.0, 0.0);
     }
 
 }
@@ -172,31 +177,84 @@ hitable_list *dark_room() {
 }
 
 hitable_list *cornell_box(float front, float back, float top, float bottom, float left, float right) {
-    hitable **list = new hitable*[8];
-    int i = 0;
-    texture* light = new constantTexture(vec3(25, 25, 25));
+    hitable **list = new hitable*[13];
+    vec3 span(left - right, top - bottom, back - front);
+    
+    texture* light = new constantTexture(vec3(1));
+
+    texture * checker0 = new constantTexture(vec3(0.2, 0.3, 0.1));
+    texture * checker1 = new constantTexture(vec3(0.9, 0.9, 0.9));
+    texture* marble1Tex = new marble1Texture(0.2, vec3(1.0), 0.8);
+    texture* mosaicTex = new mosaicTexture(0.1, vec3(0.2, 0.8, 0.3));
     texture* red = new constantTexture(vec3(0.65, 0.05, 0.05));
+    texture* orange = new constantTexture(vec3(190/255.0, 138/255.0, 89/255.0));
     texture* green = new constantTexture(vec3(0.12, 0.45, 0.15));
     texture* yellow = new constantTexture(vec3(0.8, 0.6, 0.2));
+    texture* blue = new constantTexture(vec3(0.1, 0.2, 0.5));
     texture* white = new constantTexture(vec3(0.73));
 
     // back
-    list[i++] = new revNormObj(new xyRect(right, left, bottom, top, back, new lambertian(white)));
+    list[0] = new revNormObj(new xyRect(right, left, bottom, top, back, new lambertian(new checkerTexture(checker0, checker1, 0.5))));
     // top   
-    list[i++] = new revNormObj(new xzRect(right, left, front, back, top, new lambertian(white)));
+    list[1] = new revNormObj(new xzRect(right, left, front, back, top, new lambertian(marble1Tex)));
     // bottom
-    list[i++] = new xzRect(right, left, front, back, bottom, new lambertian(white));
+    list[2] = new xzRect(right, left, front, back, bottom, new lambertian(mosaicTex));
     // left
-    list[i++] = new revNormObj(new yzRect(bottom, top, front, back, left, new lambertian(red)));
+    list[3] = new revNormObj(new yzRect(bottom, top, front, back, left, new lambertian(red)));
     //right
-    list[i++] = new yzRect(bottom, top, front, back, right, new lambertian(green));
+    list[4] = new yzRect(bottom, top, front, back, right, new lambertian(green));
     // up light
-    list[i++] = new xzRect(213, 343, 227, 332, top - 1, new diffuseLight(light));
+    list[5] = new xzRect(right + 0.35*(left-right), right + 0.65*(left-right), front + 0.25*(back-front), front + 0.75*(back-front), top - 0.1, new diffuseLight(light));
     // front box
-    list[i++] = new box(vec3(140, 0, 65), vec3(305, 165, 230), new lambertian(white));
-    // box2
-    list[i++] = new box(vec3(295, 0, 295), vec3(460, 330, 460), new lambertian(white));
-    return new hitable_list(list, i);
+    list[6] = new translated(
+                    new rotatedY(
+                        new box(vec3(right, bottom, front), 
+                                vec3(0.16) * span + vec3(right, bottom, front), 
+                                new lambertian(white)), 
+                        -20), // rotate angle
+                    vec3(0.2, 0, 0.2) * span); // translate offset
+    // front left dielect sphere
+    float radius = 0.12 * fabs(span.x());
+    list[7] = new translated(
+                    new sphere(vec3(right, bottom, front) + vec3(radius), radius, new dielect(1.7)), 
+                    vec3(0.65, 0, 0.2) * span); // translate offset
+    // front middle phong sphere
+    // list[i++] = new translated(
+    //                 new box(vec3(right, bottom, front), 
+    //                         vec3(0.15) * span, 
+    //                         new lambertian(white)), 
+    //                 vec3(0.2, 0, 0.2) * span); // translate offset  
+    // front right bubble over the box
+    radius = 0.11 * fabs(span.x());
+    list[8] = new translated(
+                    new sphere(vec3(right, bottom, front) + vec3(radius), radius, new dielect(1.4)),
+                    vec3(0.2, 0.4, 0.2) * span); // translate offset 
+    radius = 0.1 * fabs(span.x());
+    list[9] = new translated(
+                    new sphere(vec3(right, bottom, front) + vec3(radius), -radius, new dielect(1.4)),
+                    vec3(0.2, 0.4, 0.2) * span); // translate offset              
+    // back box
+    list[10] = new translated(
+                    new rotatedY(
+                        new box(vec3(right, bottom, front), 
+                                vec3(0.15, 0.3, 0.15) * span + vec3(right, bottom, front), 
+                                new lambertian(white)), 
+                        30), // rotate angle
+                    vec3(0.6, 0, 0.6) * span); // translate offset
+ 
+    // back metal sphere on the back box
+    radius = 0.12 * fabs(span.y());
+    list[11] = new translated(
+                    new sphere(vec3(right, bottom, front) + vec3(radius), radius, new metal(yellow, 0.5)), 
+                    vec3(0.6, 0.3, 0.6) * span); // translate offset
+    
+    // back right floating moving box
+    list[12] = new translated(
+                    new movSphere(vec3(right, bottom, front) + vec3(radius), vec3(right, bottom, front) + vec3(radius) + vec3(0, 2*radius, 0), 0.0, 1.0, radius, new lambertian(orange)), 
+                    vec3(0.3, 0.4, 0.6) * span); // translate offset
+                
+    
+    return new hitable_list(list, 13);
 
 }
 int main(){
@@ -209,15 +267,15 @@ int main(){
     } 
 
     
-    int nx = 600, ny = 300, ns = 10;
+    int nx = 400, ny = 400, ns = 20;
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
-    float back = 700;
+    float back = 80;
     float front = 0;
-    float left = 600;
+    float left = 50;
     float right = 0;
-    float top = 600;
+    float top = 50;
     float bottom = 0;
-    vec3 lookfrom((left+right)/2, (top+bottom)/2, front - 1.3 * (back - front));
+    vec3 lookfrom((left+right)/2, (top+bottom)/2, front - 1 * (back - front));
     vec3 lookat((left+right)/2, (top+bottom)/2, front);
     vec3 vup(0,1,0);
     float v_fov = 40;

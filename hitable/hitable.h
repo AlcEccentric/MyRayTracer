@@ -3,6 +3,7 @@
 #include "../camera/ray.h"
 #include "../tools/vec3.h"
 #include "../tools/AABB.h"
+#include <float.h>
 
 class material;
 struct hit_info{
