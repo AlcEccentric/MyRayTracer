@@ -9,6 +9,8 @@
 #include "hitable/xz_rect.h"
 #include "hitable/yz_rect.h"
 #include "hitable/bvh_node.h"
+#include "hitable/rev_normal_obj.h"
+#include "hitable/box.h"
 #include "material/material.h"
 #include "material/lambertian.h"
 #include "material/metal.h"
@@ -166,9 +168,35 @@ hitable_list *dark_room() {
     list[3] = new xyRect(-1, 1, 1, 3, 3, new diffuseLight(whiteLight));
     list[4] = new xzRect(-1, 1, -1, 1, 5, new diffuseLight(whiteLight));
     list[5] = new yzRect(1, 3, -1, 1, 4, new diffuseLight(whiteLight));
-
-
     return new hitable_list(list, 6);
+}
+
+hitable_list *cornell_box(float front, float back, float top, float bottom, float left, float right) {
+    hitable **list = new hitable*[8];
+    int i = 0;
+    texture* light = new constantTexture(vec3(25, 25, 25));
+    texture* red = new constantTexture(vec3(0.65, 0.05, 0.05));
+    texture* green = new constantTexture(vec3(0.12, 0.45, 0.15));
+    texture* yellow = new constantTexture(vec3(0.8, 0.6, 0.2));
+    texture* white = new constantTexture(vec3(0.73));
+
+    // back
+    list[i++] = new revNormObj(new xyRect(right, left, bottom, top, back, new lambertian(white)));
+    // top   
+    list[i++] = new revNormObj(new xzRect(right, left, front, back, top, new lambertian(white)));
+    // bottom
+    list[i++] = new xzRect(right, left, front, back, bottom, new lambertian(white));
+    // left
+    list[i++] = new revNormObj(new yzRect(bottom, top, front, back, left, new lambertian(red)));
+    //right
+    list[i++] = new yzRect(bottom, top, front, back, right, new lambertian(green));
+    // up light
+    list[i++] = new xzRect(213, 343, 227, 332, top - 1, new diffuseLight(light));
+    // front box
+    list[i++] = new box(vec3(140, 0, 65), vec3(305, 165, 230), new lambertian(white));
+    // box2
+    list[i++] = new box(vec3(295, 0, 295), vec3(460, 330, 460), new lambertian(white));
+    return new hitable_list(list, i);
 
 }
 int main(){
@@ -181,12 +209,18 @@ int main(){
     } 
 
     
-    int nx = 600, ny = 300, ns = 5;
+    int nx = 600, ny = 300, ns = 10;
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
-    vec3 lookfrom(18, 3, 15);
-    vec3 lookat(0,2.5,0);
+    float back = 700;
+    float front = 0;
+    float left = 600;
+    float right = 0;
+    float top = 600;
+    float bottom = 0;
+    vec3 lookfrom((left+right)/2, (top+bottom)/2, front - 1.3 * (back - front));
+    vec3 lookat((left+right)/2, (top+bottom)/2, front);
     vec3 vup(0,1,0);
-    float v_fov = 20;
+    float v_fov = 40;
     float dist_to_focus_screen = (lookfrom - lookat).length();
     float aperture = 0.0;
     camera cam(lookfrom, lookat, vup, v_fov, float(nx)/float(ny), aperture, dist_to_focus_screen, 0.0, 1.0);
@@ -203,7 +237,9 @@ int main(){
     // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
     // hitable_list* worldlist = img_sphere();
     // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
-    hitable_list* worldlist = dark_room();
+    // hitable_list* worldlist = dark_room();
+    // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
+    hitable_list* worldlist = cornell_box(front, back, top, bottom, left, right);
     hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
     int count = 0;
     for(int j = ny - 1; j >= 0; j--)
@@ -231,7 +267,7 @@ int main(){
             // average the rgbs of all 200 ray to get antialiasing color of the origin hit point
            
             vec3 c = vec3(0.0, 0.0, 0.0);
-            int point_num_on_lens = 3;
+            int point_num_on_lens = 5;
             for(int k = 0; k < point_num_on_lens; k++)
             {
                 for(int s = 0; s < ns; s++){
