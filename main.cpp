@@ -33,7 +33,22 @@
 #define STB_IMAGE_IMPLEMENTATION
 #include "tools/stb_image.h"
 #include "float.h"
+#include "tools/vec3.h"
 
+struct phongInfo{
+    float specExpo;
+    float Kd;
+    vec3 viewDir;
+};
+
+struct boxInfo{
+    float front; 
+    float back;
+    float top;
+    float bottom; 
+    float left;
+    float right;
+};
 vec3 backgroundColor = vec3(0.5, 0.5, 0.5) ;
 // the meaning of this function
 // get color of the light sent by "world" from "ray"'s direction 
@@ -57,21 +72,29 @@ vec3 color(const ray& r, hitable * world, int depth){
         // consider less than 50 times of reflection
         // if the no. of reflection is greater than 50,
         // we treat this case as no reflection (i.e., not scattered)
-        if(r_hit_info.mat_ptr->scatter(r, r_hit_info, attenu, scattered) && depth < 10){
+        if(r_hit_info.mat_ptr->scatter(r, r_hit_info, attenu, scattered) && depth < 40){
             if(r_hit_info.mat_ptr->isPhong()){
                 phong* ph = (phong*)r_hit_info.mat_ptr;
-                ray shadDetect;
-                ph->phongScatter(r, r_hit_info, attenu, shadDetect);
-                hit_info shadInfo;
-                int vis;
-                if(world->hit(shadDetect, 0.001, ph->lightDist, shadInfo))
-                    vis = 0;
-                else
-                    vis = 1;
-
-                vec3 diffuse = vis * attenu * ph->intensity * std::max(0.0f, dot(r_hit_info.n, -ph->lightDir));
-                vec3 reflected = reflect(ph->lightDir, r_hit_info.n);
-                vec3 specular = vis * ph->intensity * std::pow(std::max(0.0f, dot(reflected, -ph->viewDir)), ph->n);
+                vec3 diffuse = vec3(0);
+                vec3 specular = vec3(0);
+                for(int i = 0; i < ph->lightsNum; i++){
+                    vec3 lightDir = normalize(ph->lightDirs[i]);
+                    float lightDist = ph->lightDists[i];
+                    float intensity = ph->intensities[i];
+                    ray shadDetect;
+                    ph->phongScatter(r, r_hit_info, lightDir, attenu, shadDetect);
+                    hit_info shadInfo;
+                    int vis;
+                    if(world->hit(shadDetect, 0.001, 5, shadInfo))
+                        vis = 0;
+                    else
+                        vis = 1;
+                    
+                    diffuse += vis * attenu * intensity * std::max(0.0f, dot(r_hit_info.n, -lightDir));
+                    vec3 reflected = reflect(lightDir, r_hit_info.n);
+                    specular += vis * intensity * std::pow(std::max(0.0f, dot(reflected, -ph->viewDir)), ph->n);
+                }
+                
                 return diffuse * ph->Kd + specular * (1 - ph->Kd);
                 
             }
@@ -197,13 +220,35 @@ hitable_list *phong_sphere(vec3& viewDir) {
     texture* blue = new constantTexture(vec3(0.1, 0.2, 0.5));
     texture* mosaicTex = new mosaicTexture(1.0, vec3(0.2, 0.8, 0.3));
 
+    int lightsNum = 2;
+    vec3 *lightDirs = new vec3[lightsNum];
+    float *lightDists = new float[lightsNum];
+    float *lightInts = new float[lightsNum];
+    lightDirs[0] = vec3(-1);
+    lightDists[0] = 10;
+    lightDirs[1] = vec3(-1, 0, -1);
+    lightDists[1] = 10;
+    lightInts[0] = 1;
+    lightInts[1] = 0.45;
     list[1] = new sphere(vec3(0, -1000, 0), 1000, new lambertian(mosaicTex));
-    list[0] = new sphere(vec3(2, 2, 0), 2, new phong(blue, vec3(-1), viewDir, 0.6, 15, 10, 1.0));
+    list[0] = new sphere(vec3(2, 2, 0), 2, new phong(blue, lightDirs, lightsNum, lightDists, viewDir, lightInts, 0.6, 15));
 
     return new hitable_list(list, 2);
 }
-hitable_list *cornell_box(float front, float back, float top, float bottom, float left, float right) {
-    hitable **list = new hitable*[13];
+hitable_list *cornell_box(const boxInfo& bi, const phongInfo& pi) {
+
+    vec3 viewDir = pi.viewDir;
+    float specExpo = pi.specExpo;
+    float Kd = pi.Kd;
+
+    float front = bi.front; 
+    float back = bi.back; 
+    float top = bi.top; 
+    float bottom = bi.bottom; 
+    float left = bi.left; 
+    float right = bi.right;
+
+    hitable **list = new hitable*[14];
     vec3 span(left - right, top - bottom, back - front);
     
     texture* light = new constantTexture(vec3(1));
@@ -239,18 +284,14 @@ hitable_list *cornell_box(float front, float back, float top, float bottom, floa
                                 new lambertian(white)), 
                         -20), // rotate angle
                     vec3(0.2, 0, 0.2) * span); // translate offset
+
     // front left dielect sphere
     float radius = 0.12 * fabs(span.x());
     list[7] = new translated(
                     new sphere(vec3(right, bottom, front) + vec3(radius), radius, new dielect(1.7)), 
                     vec3(0.65, 0, 0.2) * span); // translate offset
-    // front middle phong sphere
-    // list[i++] = new translated(
-    //                 new box(vec3(right, bottom, front), 
-    //                         vec3(0.15) * span, 
-    //                         new lambertian(white)), 
-    //                 vec3(0.2, 0, 0.2) * span); // translate offset  
-    // front right bubble over the box
+
+     // front right bubble over the box    
     radius = 0.11 * fabs(span.x());
     list[8] = new translated(
                     new sphere(vec3(right, bottom, front) + vec3(radius), radius, new dielect(1.4)),
@@ -274,13 +315,31 @@ hitable_list *cornell_box(float front, float back, float top, float bottom, floa
                     new sphere(vec3(right, bottom, front) + vec3(radius), radius, new metal(yellow, 0.5)), 
                     vec3(0.6, 0.3, 0.6) * span); // translate offset
     
-    // back right floating moving box
+    // front middle floating moving box
     list[12] = new translated(
-                    new movSphere(vec3(right, bottom, front) + vec3(radius), vec3(right, bottom, front) + vec3(radius) + vec3(0, 2*radius, 0), 0.0, 1.0, radius, new lambertian(orange)), 
-                    vec3(0.3, 0.4, 0.6) * span); // translate offset
-                
+                    new movSphere(vec3(right, bottom, front) + vec3(radius), vec3(right, bottom, front) + vec3(radius) + vec3(0, radius, 0), 0.0, 1.0, radius, new lambertian(orange)), 
+                    vec3(0.6, 0.5, 0.25) * span); // translate offset
+
+    // back middle phong sphere
+    radius = 0.12 * fabs(span.y());
+    int lightsNum = 1;
+    vec3 *lightDirs = new vec3[lightsNum];
+    float *lightDists = new float[lightsNum];
+    float *lightInts = new float[lightsNum];
+    vec3 phongCenter = vec3(right, bottom, front) + vec3(radius) + vec3(0.3, 0, 0.6) * span;
+    vec3 lightCenter = vec3((right+left)/2, top - 0.1, (back+front)/2);
+    lightDists[0] = (phongCenter - lightCenter).length() - 1;
+    lightDirs[0] = normalize(phongCenter - lightCenter);
+    lightCenter = phongCenter + vec3(0, (top-bottom)/3, -2 * (phongCenter.z() - front));
+    lightDists[1] = (phongCenter - lightCenter).length() - 1;
+    lightDirs[1] = normalize(phongCenter - lightCenter);
+    lightInts[0] = 1;
+    lightInts[1] = 0.2;
+    list[13] = new sphere(vec3(right, bottom, front) + vec3(radius) + vec3(0.3, 0, 0.6) * span, radius, 
+                    new phong(blue, lightDirs, lightsNum, lightDists, viewDir, lightInts, Kd, specExpo)); // translate offset
+        
     
-    return new hitable_list(list, 13);
+    return new hitable_list(list, 14);
 
 }
 int main(){
@@ -293,19 +352,19 @@ int main(){
     } 
 
     
-    int nx = 400, ny = 400, ns = 20;
+    int nx = 500, ny = 500, ns = 30;
     File<< "P3\n" << nx << " " << ny << "\n" << "255\n";
-    float back = 80;
-    float front = 0;
-    float left = 50;
-    float right = 0;
-    float top = 50;
-    float bottom = 0;
-    // vec3 lookfrom((left+right)/2, (top+bottom)/2, front - 1 * (back - front));
-    // vec3 lookat((left+right)/2, (top+bottom)/2, front);
-    vec3 lookfrom(13,2,8);
-    vec3 lookat(0,2,0);
-    vec3 viewDir = normalize(lookat - lookfrom);
+    boxInfo bi;
+    bi.back = 80;
+    bi.front = 0;
+    bi.left = 50;
+    bi.right = 0;
+    bi.top = 50;
+    bi.bottom = 0;
+    vec3 lookfrom((bi.left+bi.right)/2, (bi.top+bi.bottom)/2, bi.front - 1 * (bi.back - bi.front));
+    vec3 lookat((bi.left+bi.right)/2, (bi.top+bi.bottom)/2, bi.front);
+    // vec3 lookfrom(13,2,8);
+    // vec3 lookat(0,2,0);
     vec3 vup(0,1,0);
     float v_fov = 40;
     float dist_to_focus_screen = (lookfrom - lookat).length();
@@ -326,10 +385,14 @@ int main(){
     // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
     // hitable_list* worldlist = dark_room();
     // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
-    hitable_list* worldlist = phong_sphere(viewDir);
-    hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
-    // hitable_list* worldlist = cornell_box(front, back, top, bottom, left, right);
+    // hitable_list* worldlist = phong_sphere(viewDir);
     // hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
+    phongInfo pi;
+    pi.viewDir = normalize(lookat - lookfrom);
+    pi.specExpo = 10;
+    pi.Kd = 0.6;
+    hitable_list* worldlist = cornell_box(bi, pi);
+    hitable*  world = new bvhNode(worldlist->list, worldlist->list_size, 0, 0);
     int count = 0;
     for(int j = ny - 1; j >= 0; j--)
     {
@@ -356,7 +419,7 @@ int main(){
             // average the rgbs of all 200 ray to get antialiasing color of the origin hit point
            
             vec3 c = vec3(0.0, 0.0, 0.0);
-            int point_num_on_lens = 5;
+            int point_num_on_lens = 2;
             for(int k = 0; k < point_num_on_lens; k++)
             {
                 for(int s = 0; s < ns; s++){

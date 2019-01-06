@@ -7,14 +7,18 @@
 class phong: public material{
 public:
     texture* albedo;
-    float lightDist;
-    vec3 lightDir;
+    float* lightDists;
+    vec3* lightDirs;
+    int lightsNum;
     vec3 viewDir;
-    float intensity;
+    float* intensities;
     float Kd;
     float n;
-    phong(texture* a, vec3 light_dir, vec3 view_dir, float _Kd = 0.8, float _n = 10, const float& light_dist = 5, const float light_intense = 1) : albedo(a), lightDist(light_dist), intensity(light_intense){
-        lightDir = normalize(light_dir);
+    phong(texture* a, vec3* light_dirs, int lights_num, float* light_dists, vec3 view_dir, float* light_intens, float _Kd = 0.8, float _n = 10) : albedo(a){
+        lightDists = light_dists;
+        lightDirs = light_dirs;
+        lightsNum = lights_num;
+        intensities = light_intens;
         viewDir = normalize(view_dir);
         if(_n < 0)
             n = 10;
@@ -28,7 +32,7 @@ public:
 
     };
     virtual bool isPhong(){ return true; };
-    bool phongScatter(const ray& r_in, const hit_info& info, vec3& attenuation, ray& detect) {
+    bool phongScatter(const ray& r_in, const hit_info& info, const vec3& lightDir, vec3& attenuation, ray& detect) {
         attenuation = albedo->tex_value(info.u, info.v, info.p);
         vec3 bias = info.n * 0.0001;
         detect = ray(info.p + bias, -lightDir, r_in.time());
