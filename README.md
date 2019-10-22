@@ -1,6 +1,4 @@
-# Project Title
-
-MyRayTracer
+# MyRayTracer
 
 ## Description
 
