@@ -26,7 +26,7 @@ And rendering
 
 Some results (vary by the code):
 
-Global Illumination VS Local Illumination(Blue ball rendere with Phong illumination)
+Global Illumination VS Local Illumination (Blue ball rendered with Phong illumination)
 
 Sampling less for faster rendering, which leads to black spots
 
