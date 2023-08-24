@@ -48,4 +48,4 @@ Different Balls
 
 * Sean Barrett for his stb_image.h in https://github.com/nothings/stb/blob/master/stb_image.h
 
-* Peter Shirley's books
+* Peter Shirley's *Realistic Ray Tracing*
